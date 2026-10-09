@@ -1,0 +1,410 @@
+---
+title: Data Visualization Assignment 
+author: Michaela Luceno 
+date: October 9 2026 
+format: 
+  html:
+    css: styles.css
+    toc: true
+    code-fold: true
+    code-summary: "Show code"
+    df-print: paged
+execute:
+    echo: false
+    warning: false
+---
+
+```{r, loading libraries}
+#| output: FALSE
+
+library(tidyverse)
+library(psych)
+library(broom)
+library(gt)
+library(janitor)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+```
+
+```{r, loading data}
+#| output: FALSE
+
+data.films<-read_csv("pixar_films.csv")
+data.response<-read_csv("public_response.csv")
+
+#Combining data files
+data.all<-inner_join(data.films,data.response, by = "film")
+```
+
+```{r, cleaning and selecting data}
+#| output: FALSE 
+
+#Cleaning data and names
+data.clean<-data.all|>
+  rename("Number" = number,
+         "Film" = film, 
+         "Release Date" = release_date, 
+         "Run Time" = run_time, 
+         "Age Rating" = film_rating,
+         "Rotten Tomatoes" = rotten_tomatoes, 
+         "Metacritic" = metacritic, 
+         "Cinema Score" = cinema_score, 
+         "Critics Choice" = critics_choice)
+ 
+#head(data.clean$`Release Date`)
+
+#Making dates into year only 
+data.clean<-data.clean|>
+  mutate(`Release Date` = year(`Release Date`))|>
+    select(`Film`, `Release Date`, `Run Time`, `Rotten Tomatoes`, `Metacritic`, `Cinema Score`, `Critics Choice`)
+  
+```
+
+```{r,Version A graph 1}
+#| output: FALSE
+
+#LAYER 1 
+films.per.year <- data.clean |>
+  count(`Release Date`)|>
+  complete(`Release Date` = 1995:2020, fill = list(n = 0))
+
+graph.1<-ggplot(films.per.year, aes(x = `Release Date`, y = n)) +
+  geom_line() + geom_point() + 
+  labs(x = "Year", 
+    y = "Number of Films Released", 
+    title = "Frequency and Timeline of Pixar Movie Release",
+    subtitle = "1995 - 2020") + 
+   scale_y_continuous(limits = c(0,3))
+graph.1
+
+#LAYER 2 - Points 
+graph.1 <- graph.1 + geom_point(shape = 16, size = 2)
+graph.1
+
+#LAYER 3
+ggplot2::theme_classic(
+  base_size = 11,
+  base_family = "",
+  header_family = NULL,
+  ink = "black",
+  paper = "white",
+  accent = "#3366FF")
+
+#LAYER 4
+graph.1<-graph.1 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.1
+
+
+```
+
+```{r, version A graph 2}
+#| output: FALSE 
+
+
+data.clean <- data.clean|>
+  mutate(`Average Rating` = rowMeans(across(c(`Rotten Tomatoes`, `Metacritic`, `Critics Choice`)), na.rm = TRUE))|>
+  mutate(`Average Rating` = round(`Average Rating`, 1))
+
+
+#LAYER 1 
+#LINE GRAPH
+line.graph<- ggplot(data.clean, aes(x =`Release Date`, y = `Average Rating`)) +
+  geom_line() +
+  geom_point() +
+  labs(x = "Year",
+       y = "Average Rating",
+       title = "Average Ratings Across Pixar Movies",
+       subtitle = "1995 - 2023")
+#BAR GRAPH
+bar.graph<-ggplot(films.per.year, aes(x=`Release Date`, y = n))+
+  geom_bar(stat = "identity", width= 0.5,colour = "black")+
+   labs(x = "Year",
+       y = "Number of Films Released",
+       title = "Films Released Each Year",
+       subtitle = "1995 - 2020") +
+       scale_x_continuous(limits = c(1995,2021))
+
+#LAYER 2
+line.graph <-line.graph + geom_point(shape = 15, size = 2)
+line.graph
+
+library(patchwork)
+graph.2<-line.graph/bar.graph
+graph.2
+
+#LAYER 3 
+graph.2<-graph.2 +
+  ggplot2::theme_classic(
+  base_size = 11,
+  base_family = "",
+  header_family = NULL,
+  ink = "black",
+  paper = "white",
+  accent = "#3366FF")
+graph.2
+
+#LAYER 4
+graph.2 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.2
+
+```
+
+```{r, Version A graph 3}
+#| output: FALSE 
+
+#LAYER 1 
+graph.3 <- ggplot(data.clean, aes(x = `Release Date`, y = `Average Rating`))
+graph.3
+
+#LAYER 2
+graph.3 <- graph.3 + geom_point(shape = 16, colour = "black")
+graph.3
+
+#LAYER 3 
+graph.3 <-ggplot(data.clean, aes(x = `Release Date`, y = `Average Rating`))+
+  geom_line(aes(y=`Rotten Tomatoes`), linetype = "solid")+
+  geom_line(aes(y=`Metacritic`), linetype = "dotted")+
+  geom_line(aes(y=`Critics Choice`), linetype = "dashed")+ 
+  labs(
+    x = "Release Date", 
+    y = "Respective Critic Score", 
+    title = "Score by Each Critic Throughout Pixar Films", 
+    subtitle = "1995 - 2020", 
+    linetype = "Critic")
+graph.3
+
+#LAYER 4 
+ggplot2::theme_classic(
+  base_size = 11,
+  base_family = "",
+  header_family = NULL,
+  ink = "black",
+  paper = "white",
+  accent = "#3366FF")
+
+#LAYER 5
+graph.3<-graph.3 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.3
+
+```
+
+```{r, Version 2, graph 1}
+#| output: FALSE
+
+#LAYER 1
+label.position <- rep(c(-7,-5,-3,3,5,7), length.out = nrow(data.clean))
+
+graph.4 <- ggplot(data.clean, aes(x = `Release Date`, y = 1)) + 
+  geom_point ()+ geom_line() +
+  labs(
+    x = "Year", 
+    y = "Pixar Films",
+    title = "Pixar Through Time")+ 
+ geom_text(aes(label = `Film`), vjust = label.position)
+ scale_y_continuous(limits = c(-1,5))
+
+ 
+#LAYER 2 
+graph.4 <- graph.4 + 
+  geom_point(shape = 4, size=2, 
+colour = "#70284a", fill ="#70284a") + 
+  geom_line(aes(colour = "#dc7176")) + 
+  guides(colour = "none")
+graph.4
+ 
+#LAYER 3
+graph.4<-graph.4 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.4
+
+```
+
+```{r, Version B graph 2}
+#| output: FALSE
+
+#LAYER 1
+graph.5<-ggplot(films.per.year, aes(
+  x = `Release Date`,
+  y = n,
+  size = n))+
+ geom_point(colour = "#dc7176",alpha = 0.6) +
+  scale_size_area(max_size = 15) +
+  labs(
+   x = "Release Year",
+   y = "Number of Movies",
+   size = "Number of Movies",
+   title = "Pixar Movies Released Each Year") +
+  scale_y_continuous(limits = c(0,3))
+  theme_minimal()
+graph.5
+
+#LAYER 2
+graph.5<-graph.5 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.5
+
+```
+
+```{r, Version 2 graph 3}
+#| output: FALSE 
+
+#LAYER 1 
+#graph.6 <- ggplot(data.clean, aes(x = `Release Date`, #y = n))
+
+#LAYER 2
+library(tidyr)
+
+data.reorganized <- data.clean %>%
+  pivot_longer(cols = c(`Rotten Tomatoes`, `Metacritic`, `Critics Choice`),
+    names_to = "All Critics", values_to = "Scores")
+
+#LAYER 3
+data.reorganized$`All Critics` <- factor(
+  data.reorganized$`All Critics`,
+  levels = c(
+    "Rotten Tomatoes",
+    "Critics Choice",
+    "Metacritic"))
+
+graph.6<-ggplot(
+  data.reorganized, aes(
+    x=`Release Date`, y=`Scores`, colour=`All Critics`, group = `All Critics`)) + geom_smooth(method = "loess", se = FALSE, na.rm = TRUE, linewidth = 1.3) + labs(
+  x = "Release Date", 
+  y = "All Critic Scores", 
+  title = "All Critic Scores over time", 
+  fill = "Critic")
+
+#LAYER 4
+graph.6 <- graph.6 +
+  scale_colour_manual(
+    values = c(
+      "Rotten Tomatoes" = "#f5ba98",
+      "Metacritic" ="#70284a",
+      "Critics Choice" = "#dc7176"))
+graph.6
+
+#LAYER 5
+graph.6<-graph.6 + theme_classic (base_family = "Times New Roman", base_size = 10)
+graph.6
+
+```
+
+```{r version B graph 4}
+#LAYER 1 
+graph.7 <- ggplot(data.reorganized, aes(x = Scores, fill = `All Critics`)) + 
+  geom_density(alpha = 0.2, na.rm = TRUE) + 
+  labs(
+    x = "All Critic Scores", 
+    y = "Density",
+    title = "Distribution of Pixar Critic Scores", 
+    fill = "Critic") 
+
+#LAYER 2 
+graph.7 <- graph.7 + 
+   scale_fill_manual(
+    values = c(
+      "Rotten Tomatoes" = "#f5ba98",
+      "Metacritic" ="#70284a",
+      "Critics Choice" = "#dc7176"))
+
+#LAYER 3 
+graph.7<-graph.7 + theme_classic (base_family = "Times New Roman", base_size = 10)
+```
+
+# Pixar's Mystery Movie: Meta-Analysis of Movie Critiques
+## Summary
+
+Reviews carry significance to inform the general public of new media. Findings, such as movie critiques, have become murky through the increasing access to technology, potentially altering how society receives information. In this study, we conducted a meta-analysis of Pixar movies and the consistency in the scoring, as it carries influence in viewership, and the industry as a whole. 
+
+Using a dataset of Pixar films from 1995 -2020 (n = 24), we first assessed the frequency of movie release per year, noting increases during throughout periods of technological advancement. Averaging critic scores from Rotten Tomatoes, Metacritic and Critic’s Choice, allowed for assessment of the trend, as viewers may be exposed to “overall” rankings of a movie through surrounding media sources (news, television, radio, etc.). However, how much can one overall rating glean from each critic, and their varying opinion? Conversely, are the trends similar, or rather has technological access allowed for such a large variability in scores, that any presented average becomes futile? 
+
+An analysis was then conducted to graph the scores of each movie over time, with each critic represented by a different line. Results showed overall similarities in trends between the 3 critics, with variation was seen the numerical scores themselves, showing only consistencies in relative increases and decreases of score. Therefore, it is prudent to take each critic – both in and outside of cinema – with caution, as their standalone score might be misleading compared to others; cross-referencing with other movies and critics is wise. 
+
+## Graphical Analysis & Results 
+As seen in Fig.1, Pixar released their first movie in 1995, with the second coming out 3 years later in 1998 - both notable films. Throughought the 2000s, a relatively consistent trend of 1 movie (occasionally none) each year is observed until 2015, being the first year with 2 releases, followed by 2017 and 2020.
+```{r}
+#| label: figure-1
+#| fig-cap: Fig.1. Number of Pixar movies released each year from 1995-2020 (n=24)
+
+graph.1
+```
+
+Additionally, Fig 2. compares the number of movies released each year with the overall mean (average) of all 3 scores from Rotten Tomatoes, Metacritic and Critics Choice per movie to create a line graph. One limitation to the study is the lack of inclusion of *Toy Story* and *A Bug's Life* from Critics Choice, as they were not rated (NA). The results did not portray an incredibly linear pattern, as there was a slight dip in ratings after 2012 with slight recovery but noticeably lower scores distinguished themsleves after this point. These stark contrasts provoke further analysis into the comparison between each of the 3 critics to observe generally low trends, versus potential influential outliers (low scores that may influence the overall); potentially those who generally do not enjoy cartoons, for instance. Is this general "consensus" truly informative?  
+
+
+```{r}
+#| label: fig-2
+#| fig-cap: "Fig. 2.Above: Line graph of 3 critics' average score out of 100 for each movie. Below:Bar graph of Pixar movies released each year from 1995-2020 (n=1995-2020)."
+#| warning: false 
+
+graph.2
+```
+
+Finally, to combat the potential of extreme outliers skewing the overall ratings of movies, we created a visual representation of the scoring from each of the 3 critics, as seen by  differing line types (Fig.3). It can be seen that the overall trends and patterns of the line remain relatively similar between the 3 organizations. However, interestingly, Rotten Tomatoes (solid line) follows the same pattern, but typically at higher values than the others. In descending order, it is then Critics Choice (dashed line), and the lowest scores typically seen by Metacritic (dotted line). Therefore, the patterns are consistent with scores between movies being higher or lower overall, with the numerical value carrying relativity to the critics own scale. 
+
+
+```{r}
+#| label: fig-3
+#| fig-cap: "Fig. 3. Chart of 3 line graphs showing each critic's score out of 100 for each movie. Rotten Tomatoes (solid), Metacritic (dotted), and Critics Choice (dashed). Axes show release years from 1995–2020 (n = 24)."
+#| warning: false
+
+graph.3
+```
+
+To conclude, this meta-analysis compared the critic values of three different film critique modalities (Rotten Tomatoes, Metacritic and Critics Choice) to evaluate Pixar productions since their first 1995 film. It is crucial to note that while these trends are similar, scores and numerical values should not be considered in isolation, as it has shown that these values do indeed differ - particularly as technology becomes increasingly accessible. Exercising caution when considering online reviews is necessary to fully understand the nature of the film, or other creative media. 
+
+<escape><h1 style="color: #70284a;"> </escape>
+Pixar's Modern Movie Magic
+<escape></h1></escape>
+<escape><h2 style="color: #f5ba98;"> </escape>
+Summary
+<escape></h2></escape>
+Since 1986, Pixar Animation Studios has become both an infamous production studio and influential in the childhood of millions. Until 2020, their creativity has produced 23 feature films, being staples in many homes. But as time and technology changes, it leaves us wondering if each generation experiences the same <escape><p style="color: #70284a;"> </escape>
+Movie Magic.
+<escape></p></escape>
+
+Starting from the first film in 1995, Toy Story, we followed the progression of movie releases and what the world had to say. With the technological advances that the 2000s brought, it was quickly noted that the release of films started off quite sporadically in the 90s, however leveling off, before experiencing a greater production influx – as many as 2 films per year. This calls to light the age-old trade off: valuing quantity over quality.
+
+Furthermore, does this trade-off potentially take away the lovable characters and comfort movies Pixar once provided? Who better than to explain the quality of Pixar movies than critics themselves; how are these new movies perceived? 
+Critics’ overall rankings have noted that lower scores over the years – particularly as multiple movies were released in a year. Additionally, this is not an isolated incident, as many critics can agree upon the decline of movie quality. Therefore, distaste of movie cannot necessarily be chalked up to generational differences, and we can unfortunately say what most are thinking: Pixar, take your time and bring back the magic. 
+
+<escape><h2 style="color: #f5ba98;"> </escape>
+Pixar In a Nutshell
+<escape></h2></escape>
+We wanted to start by first giving a timeline of Pixar's production history - a reminder of of which movies came from their creative minds that you might not have known, or better yet provoke your own childhood nostalgia. Starting with *Toy Story*, a classic from 1995 all the way to 2021's Luca (which was not yet rated and not included in analysis, but here to provide a comprehensive overview). 
+
+```{r}
+graph.4
+```
+
+We can see that as the years become increasingly recent, the movies start to cluster together more than they did in the early 2000s; a few prequels, sequels, new concepts - names that you might not recognize as quickly as others. To better understand some of the clustering (more movies around the same time point), we've made another graph which can  show that there are more of the newer newer releases, seen by the larger bubbles meaning 2 movies in 1 year.
+
+```{r}
+graph.5
+```
+
+<escape><h2 style="color: #f5ba98;"> </escape>
+Does This Mean Anything?
+<escape></h2></escape>
+Well, it may. If you, dear reader, think back to your childhood, what are you most fond of? Is there any way that could be just nostalgia? Or are these quick-releasing movies truly just not as great? 
+
+We took opinions from Rotten Tomatoes, Metacritic and Critics Choice and put them into a graph to see not only, what are the opinions of newer Pixar productions, but whether they all agree. Maybe some are simply partial to the adventures of Woody and Buzz. 
+
+```{r}
+graph.7
+```
+We can see that as a whole, Rotten Tomatoes is kindest with their ratings, whereas Metacritic remains the harshest, as their scores are more leftwards towards the smaller numbers. They do have a large amount of overlap, however, indicating that they have fairly similar opinions on the majority of movies. 
+
+Interestingly, it seems as though all critics have a similar consensus. Although their respective numeric scores were different, all critics compared the movies similarly, showing similar thought processes with comparative higher or lower scores.
+
+```{r}
+graph.6
+```
+
+You can also see, throughout 2015 and onward, the ratings become more inconsistent, as well as slightly lower. There were more lows, and a few highs, but seemingly nothing compared to the earlier 2000's "Golden Age" of high ratings and heartwarming cinema. 
+
+As a whole, Pixar will always have the hearts of children (and adults) everywhere, but they may benefit from taking some time and truly creating another piece to be loved by all. 
+
+## Date/Source Note 
+The dataset that was used was obtained from tidytuesday, and can be accessed using https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-03-11/pixar_films.csv. It was initially two datasets of the same narrative of information, however the inner_join function was used to combine them, and eliminating movies without adequate information between the two. Data from the column "Cinema Score" was additionally omitted, as they assigned a broad letter grade which would not have been translatable/compatible with the other scores (being out of 100). Finally, there were two movies from Critics Choice that received NA and were excluded (as previously stated).
+
