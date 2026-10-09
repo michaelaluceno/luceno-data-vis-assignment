@@ -405,6 +405,6 @@ You can also see, throughout 2015 and onward, the ratings become more inconsiste
 
 As a whole, Pixar will always have the hearts of children (and adults) everywhere, but they may benefit from taking some time and truly creating another piece to be loved by all. 
 
-## Date/Source Note 
+## Data/Source Note 
 The dataset that was used was obtained from tidytuesday, and can be accessed using https://github.com/rfordatascience/tidytuesday/blob/main/data/2025/2025-03-11/pixar_films.csv. It was initially two datasets of the same narrative of information, however the inner_join function was used to combine them, and eliminating movies without adequate information between the two. Data from the column "Cinema Score" was additionally omitted, as they assigned a broad letter grade which would not have been translatable/compatible with the other scores (being out of 100). Finally, there were two movies from Critics Choice that received NA and were excluded (as previously stated).
 
